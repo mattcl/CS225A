@@ -384,11 +384,11 @@ bool inv_kin( const PrVector3& pos, const PrMatrix3& rot, int elbow,
    // We have from the expression of T04 the coordinates of the Wrirst (x4,y4,z4)
    // These expressions can be simplified to isolate theta1 which gives
    //  L1 = y4c1 - x4s1 ====>  L1/n = suc1 - cus1 = s(u - 1)
-   double l = L1/sqrt(Wrist0[1]*Wrist0[1]+Wrist0[0]*Wrist0[0]);
-   if (Wrist0[1]==0&&Wrist0[0] - asin(l)==0) return false;
-   qOut[0] = atan2(Wrist0[1],Wrist0[0]) - asin(l);
+   double t1 = sqrt(Wrist0[1]*Wrist0[1]+Wrist0[0]*Wrist0[0]);
+   if (t1==0||L1/t1<-1||L1/t1>1) return false;
+   qOut[0] = atan2(Wrist0[1],Wrist0[0]) - asin(L1/t1);
    if (elbow&0x01)    
-	   qOut[0] = atan2(Wrist0[1],Wrist0[0]) - pi + asin(l);
+	   qOut[0] = atan2(Wrist0[1],Wrist0[0]) - pi + asin(L1/t1);
    /////////////////////////////
    //Compute theta2 and theta3//
    /////////////////////////////
@@ -401,9 +401,10 @@ bool inv_kin( const PrVector3& pos, const PrMatrix3& rot, int elbow,
    //We are seeking for a solution to the following equations:
    //   alpha = L2c2 + L3s(2+3) 
    //   beta  = -L2s2 + L3c(2+3)
-   //   this gives --> alpha^2 + beta^2 = L2^2+L3^2 + 2L2L3(c2s(2+3)-s2c(2+3)) 
-   //= L2^2+L3^2+2*L2L3s3 
-   qOut[2] = asin ( (alpha*alpha+beta*beta-L2*L2-L3*L3)/(2*L2*L3) );
+   //   this gives --> alpha^2 + beta^2 = L2^2+L3^2 + 2L2L3(c2s(2+3)-s2c(2+3)) = L2^2+L3^2+2*L2L3s3 
+   double t2 = (alpha*alpha+beta*beta-L2*L2-L3*L3)/(2*L2*L3) ;   
+   if (t2>1||t2<-1) return false;
+   qOut[2] = asin (t2);
    if (elbow&0x02)
        qOut[2] = pi-qOut[2];
    //   The previous equations can be re-written as
@@ -411,7 +412,7 @@ bool inv_kin( const PrVector3& pos, const PrMatrix3& rot, int elbow,
    //   beta*n  = -ct*s2 + st*c2 = s(t - 2)
    double ct,st,n;
    ct = L2+L3*sin(qOut[2]); st = L3*cos(qOut[2]); n = sqrt(ct*ct+st*st); 
-   if (n==0) return false;
+   if (n==0||(beta==0&&alpha==0)) return false;
    qOut[1] = atan2(st,ct) - atan2(beta,alpha);
    //////////////////////////////////
    //Compute theta4, theta5, theta6//
@@ -438,20 +439,28 @@ bool inv_kin( const PrVector3& pos, const PrMatrix3& rot, int elbow,
    //Now let's compute the translation-rotation matrix of the end-effector in frame 3
    pos_rot_3 = T30*pos_rot_0;
    //Compute theta4 from the position of the end-effector in frame 3
-   qOut[3] = atan2(pos_rot_3[2][3],pos_rot_3[0][3]);
+   double t4_1 = pos_rot_3[2][3];
+   double t4_2 = pos_rot_3[0][3];
+   if (t4_1==0&&t4_2==0) return false;
+   qOut[3] = atan2(t4_1,t4_2);
    if (elbow&0x04)
        qOut[3] = pi+qOut[3];
    //Compute theta5 from the position of the end-effector in frame 3
-   if (pos_rot_3[2][3]==0&&pos_rot_3[0][3]==0) return false;
-   if (pos_rot_3[0][3]!=0)
-     qOut[4] = atan2(pos_rot_3[0][3]/L6/cos(qOut[3]),(pos_rot_3[1][3]+L3)/(-L6));
-   if (pos_rot_3[1][0]==0&&pos_rot_3[1][1]==0) return false;
-   //Compute theta4 from the orientation of the end-effector in frame 3 using direction cosines
-   qOut[5] = atan2(-pos_rot_3[1][1],pos_rot_3[1][0]);
+   if (cos(qOut[3])==0) return false;
+   double t5_1 =  pos_rot_3[0][3]/L6/cos(qOut[3]);
+   double t5_2 =  (pos_rot_3[1][3]+L3)/(-L6);
+   if (t5_1==0&&t5_2==0) return false;
+   qOut[4] = atan2(t5_1,t5_2);
+   //Compute theta6 from the orientation of the end-effector in frame 3 using direction cosine
+   double t6_1 = -pos_rot_3[1][1];
+   double t6_2 = pos_rot_3[1][0];
+   if (t6_1==0&&t6_2==0) return false;
+   qOut[5] = atan2(t6_1,t6_2);
    if (elbow&0x04)
        qOut[5] = pi+qOut[5];
    return true;
 }
+
 
 void OpDynamics( const PrVector& fPrime, GlobalVariables& gv )
 {
