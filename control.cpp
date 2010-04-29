@@ -26,6 +26,7 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 using std::min;
 using std::max;
 
+// struct for spline parameters
 struct cSplineParam {
 	float tf_max;
 	float t0;
@@ -35,6 +36,7 @@ struct cSplineParam {
 	PrVector6 a3;
 };
 
+// global spline parameters
 cSplineParam spline;
 
 bool inv_kin( const PrVector3& pos, const PrMatrix3& rot, int elbow,
@@ -121,16 +123,22 @@ void initJtrackControl(GlobalVariables& gv)
 
 void initNxtrackControl(GlobalVariables& gv) 
 {
-	if(!inv_kin(gv.Td.translation(), gv.Td.rotation().matrix(), gv.elbow, gv.qd, gv)) {
-		gv.qd = gv.q;
+	PrVector6 qOut;
+	if(!inv_kin(gv.Td.translation(), gv.Td.rotation().matrix(), gv.elbow, qOut, gv)) {
+		gv.qd = qOut;
+	} else {
+		gv.dq = gv.q;
 	}
 }
 
 void initXtrackControl(GlobalVariables& gv) 
 {
-	if(!inv_kin(gv.Td.translation(), gv.Td.rotation().matrix(), gv.elbow, gv.qd, gv)) {
-		gv.qd = gv.q;
-	}
+	PrVector6 qOut;
+	if(!inv_kin(gv.Td.translation(), gv.Td.rotation().matrix(), gv.elbow, qOut, gv)) {
+		gv.qd = qOut;
+	} else {
+		gv.dq = gv.q;
+	}s
 } 
 
 void initNholdControl(GlobalVariables& gv) 
@@ -450,6 +458,11 @@ void OpDynamics( const PrVector& fPrime, GlobalVariables& gv )
 // *******************************************************************
 // Helper Functions
 // *******************************************************************
+
+/*
+ * Create a velocity saturated torque profile
+ * returns torque vector
+ */
 PrVector6 velocitySaturate(GlobalVariables& gv) {
 	PrVector6 tau_desired;
 	tau_desired.zero();
@@ -467,6 +480,10 @@ PrVector6 velocitySaturate(GlobalVariables& gv) {
 	return tau_desired;
 }
 
+/*
+ * Computers the parameters for cubic spline trajectory
+ * void
+ */
 void generateSplineTrajectory(GlobalVariables& gv) {
 	spline.t0 = gv.curTime;
 	if(InJointLimits(gv)) {
@@ -477,15 +494,23 @@ void generateSplineTrajectory(GlobalVariables& gv) {
 			if(tf > spline.tf_max)
 				spline.tf_max = tf;
 		}
-		spline.a0 = gv.q;
-		spline.a2 = (gv.qd - gv.q) * (3.0 / pow(spline.tf_max, 2));
-		spline.a3 = (gv.qd - gv.q) * (-2.0 / pow(spline.tf_max, 3));
-	} else {
-		gv.qd = gv.q;
-		spline.tf_max = -1;
+		if(spline.tf_max > 0) { // prevent divide by zero
+			spline.a0 = gv.q;
+			spline.a2 = (gv.qd - gv.q) * (3.0 / pow(spline.tf_max, 2));
+			spline.a3 = (gv.qd - gv.q) * (-2.0 / pow(spline.tf_max, 3));
+			return;
+		}
 	}
+	
+  // no trajectory could be generated, ensure that the
+  // robot does not move
+	gv.qd = gv.q;
+	spline.tf_max = -1;
 }
 
+/*
+ * Tests if the given desired joint position is within joint limits
+ */
 bool InJointLimits(GlobalVariables& gv) {
 	for(int i = 0; i < gv.qd.size(); i++) {
 		if(gv.qd[i] > gv.qmax[i] || gv.qd[i] < gv.qmin[i]) {
