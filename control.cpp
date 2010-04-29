@@ -261,7 +261,7 @@ void jtrackControl(GlobalVariables& gv)
 
 void nxtrackControl(GlobalVariables& gv) 
 {
-   gv.tau = -gv.kp*(gv.q - gv.qd) - gv.kv*(gv.dq - gv.dqd) + gv.G;
+	gv.tau = -gv.kp*(gv.q - gv.qd) - gv.kv*(gv.dq - gv.dqd) + gv.G;
 }
 
 void xtrackControl(GlobalVariables& gv) 
@@ -348,11 +348,99 @@ ADD HERE ALL STUDENT DEFINED AND AUX FUNCTIONS
 
 *******************************************************/
 
+void DH_transform (const PrVector& DH, PrMatrix& DH_matrix)
+{
+	DH_matrix[0][0] = cos(DH[3])           ; DH_matrix[0][1] = -sin(DH[3])          ;
+	DH_matrix[0][2] = 0                    ;  DH_matrix[0][3] = DH[1]               ;
+	DH_matrix[1][0] = sin(DH[3])*cos(DH[0]); DH_matrix[1][1] = cos(DH[3])*cos(DH[0]);
+	DH_matrix[1][2] = -sin(DH[0])          ;  DH_matrix[1][3] = -DH[2]*sin(DH[0])   ;
+	DH_matrix[2][0] = sin(DH[3])*sin(DH[0]); DH_matrix[2][1] = cos(DH[3])*sin(DH[0]);
+	DH_matrix[2][2] = cos(DH[0])           ;  DH_matrix[2][3] = DH[2]*cos(DH[0])    ;
+	DH_matrix[3][0] = 0                    ; DH_matrix[3][1] = 0                    ;
+	DH_matrix[3][2] = 0                    ;  DH_matrix[3][3] = 1                   ;
+}
+
 bool inv_kin( const PrVector3& pos, const PrMatrix3& rot, int elbow,
               PrVector& qOut, GlobalVariables& gv )
 {
-	
-	return true;
+   double pi = 3.14159265;
+   //Find the position of the Wrist
+   PrVector3 Z6_0, Wrist0;
+   rot.getColumn(2,Z6_0);
+   Wrist0 = pos - L6*Z6_0;
+   /////////////////////
+   //Compute theta1/////
+   /////////////////////
+   // We have from the expression of T04 the coordinates of the Wrirst (x4,y4,z4)
+   // These expressions can be simplified to isolate theta1 which gives
+   //  L1 = y4c1 - x4s1 ====>  L1/n = suc1 - cus1 = s(u - 1)
+   double l = L1/sqrt(Wrist0[1]*Wrist0[1]+Wrist0[0]*Wrist0[0]);
+   if (Wrist0[1]==0&&Wrist0[0] - asin(l)==0) return false;
+   qOut[0] = atan2(Wrist0[1],Wrist0[0]) - asin(l);
+   if (elbow&0x01)    
+	   qOut[0] = atan2(Wrist0[1],Wrist0[0]) - pi + asin(l);
+   /////////////////////////////
+   //Compute theta2 and theta3//
+   /////////////////////////////
+   double alpha;
+   if (cos(qOut[0])==0) 
+	   alpha = (Wrist0[1]-L1*cos(qOut[0]))/sin(qOut[0]);    
+   else 
+	   alpha = (Wrist0[0]+L1*sin(qOut[0]))/cos(qOut[0]);
+   double beta = Wrist0[2];
+   //We are seeking for a solution to the following equations:
+   //   alpha = L2c2 + L3s(2+3) 
+   //   beta  = -L2s2 + L3c(2+3)
+   //   this gives --> alpha^2 + beta^2 = L2^2+L3^2 + 2L2L3(c2s(2+3)-s2c(2+3)) 
+   //= L2^2+L3^2+2*L2L3s3 
+   qOut[2] = asin ( (alpha*alpha+beta*beta-L2*L2-L3*L3)/(2*L2*L3) );
+   if (elbow&0x02)
+       qOut[2] = pi-qOut[2];
+   //   The previous equations can be re-written as
+   //   alpha*n = ct*c2 + st*s2 = c(t - 2)
+   //   beta*n  = -ct*s2 + st*c2 = s(t - 2)
+   double ct,st,n;
+   ct = L2+L3*sin(qOut[2]); st = L3*cos(qOut[2]); n = sqrt(ct*ct+st*st); 
+   if (n==0) return false;
+   qOut[1] = atan2(st,ct) - atan2(beta,alpha);
+   //////////////////////////////////
+   //Compute theta4, theta5, theta6//
+   //////////////////////////////////
+   //The transformation from frame 3 to 7 T37 is easier to handle than T07 and we can obtain
+   //the desired end-effector position and orientation in frame 3 and compare it to T37 to 
+   //solve for theta5, theta6 and theta7
+   //We start first by computing the desired position and orientation in frame3
+   //To do this we need to compute T30 : we start computing T03
+   PrMatrix T01(4,4), T12(4,4), T23(4,4), T03(4,4), T30(4,4);
+   PrVector DH1 (4), DH2(4), DH3(4);
+   DH1[0] = 0    ; DH1[1] = 0 ; DH1[2] = 0 ; DH1[3] = qOut[0];
+   DH2[0] = -pi/2; DH2[1] = 0 ; DH2[2] = L1; DH2[3] = qOut[1];
+   DH3[0] = 0    ; DH3[1] = L2; DH3[2] = 0 ; DH3[3] = qOut[2];
+   DH_transform(DH1, T01);   DH_transform(DH2, T12);   DH_transform(DH3, T23);
+   PrMatrix3 R03,R30; PrMatrix trans03(3,1),trans30(3,1);
+   T03 = T01*T12*T23; T03.submatrix(0,0,R03); T03.submatrix(0,3,trans03);
+   //Now let's invert T03
+   R30 = R03.transpose(); trans30 = - R30*trans03;
+   T30.setSubmatrix(0,0,R30); T30.setSubmatrix(0,3,trans30); T30[3][3] = 1;
+   PrMatrix pos_rot_0 (4,4), pos_rot_3 (4,4);
+   pos_rot_0.setSubmatrix(0,0,rot); pos_rot_0[3][3] = 1;
+   pos_rot_0[0][3] = pos[0]; pos_rot_0[1][3] = pos[1]; pos_rot_0[2][3] = pos[2];
+   //Now let's compute the translation-rotation matrix of the end-effector in frame 3
+   pos_rot_3 = T30*pos_rot_0;
+   //Compute theta4 from the position of the end-effector in frame 3
+   qOut[3] = atan2(pos_rot_3[2][3],pos_rot_3[0][3]);
+   if (elbow&0x04)
+       qOut[3] = pi+qOut[3];
+   //Compute theta5 from the position of the end-effector in frame 3
+   if (pos_rot_3[2][3]==0&&pos_rot_3[0][3]==0) return false;
+   if (pos_rot_3[0][3]!=0)
+     qOut[4] = atan2(pos_rot_3[0][3]/L6/cos(qOut[3]),(pos_rot_3[1][3]+L3)/(-L6));
+   if (pos_rot_3[1][0]==0&&pos_rot_3[1][1]==0) return false;
+   //Compute theta4 from the orientation of the end-effector in frame 3 using direction cosines
+   qOut[5] = atan2(-pos_rot_3[1][1],pos_rot_3[1][0]);
+   if (elbow&0x04)
+       qOut[5] = pi+qOut[5];
+   return true;
 }
 
 void OpDynamics( const PrVector& fPrime, GlobalVariables& gv )
