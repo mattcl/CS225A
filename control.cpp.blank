@@ -1,0 +1,318 @@
+// controlDLL.cpp : Defines the entry point for the DLL application.
+//
+#ifdef WIN32
+#include "stdafx.h"
+BOOL APIENTRY DllMain( HANDLE hModule, 
+                       DWORD  ul_reason_for_call, 
+                       LPVOID lpReserved )
+{
+    return TRUE;
+}
+#include <stdio.h>
+
+#else // WIN32
+#include "servo.h"
+
+#endif // WIN32
+
+#include "param.h"
+#include "control.h"
+#include "PrVector.h"
+#include "PrMatrix.h"
+#include "Utils.h" // misc. utility functions, such as toRad, toDeg, etc.
+#include <math.h>
+#include <algorithm>
+using std::min;
+using std::max;
+
+bool inv_kin( const PrVector3& pos, const PrMatrix3& rot, int elbow,
+              PrVector& qOut, GlobalVariables& gv );
+void OpDynamics( const PrVector& fPrime, GlobalVariables& gv );
+
+
+// *******************************************************************
+// Initialization functions
+// *******************************************************************
+  
+void InitControl(GlobalVariables& gv) 
+{
+   // This code runs before the first servo loop
+}
+
+void PreprocessControl(GlobalVariables& gv)
+{
+   // This code runs on every servo loop, just before the control law
+}
+
+
+void PostprocessControl(GlobalVariables& gv) 
+{
+   // This code runs on every servo loop, just after the control law
+}
+
+void initFloatControl(GlobalVariables& gv) 
+{
+}
+
+void initOpenControl(GlobalVariables& gv) 
+{
+}
+
+void initNjholdControl(GlobalVariables& gv) 
+{
+}
+
+void initJholdControl(GlobalVariables& gv) 
+{
+}
+
+void initNjmoveControl(GlobalVariables& gv) 
+{
+}
+
+void initJmoveControl(GlobalVariables& gv) 
+{
+}
+
+void initNjgotoControl(GlobalVariables& gv) 
+{
+} 
+
+void initJgotoControl(GlobalVariables& gv) 
+{
+}
+
+void initNjtrackControl(GlobalVariables& gv) 
+{
+}
+
+void initJtrackControl(GlobalVariables& gv) 
+{
+}
+
+void initNxtrackControl(GlobalVariables& gv) 
+{
+}
+
+void initXtrackControl(GlobalVariables& gv) 
+{
+} 
+
+void initNholdControl(GlobalVariables& gv) 
+{
+}
+
+void initHoldControl(GlobalVariables& gv) 
+{
+}
+
+void initNgotoControl(GlobalVariables& gv) 
+{
+} 
+
+void initGotoControl(GlobalVariables& gv) 
+{
+} 
+
+void initNtrackControl(GlobalVariables& gv) 
+{
+}
+
+void initTrackControl(GlobalVariables& gv) 
+{
+} 
+
+void initPfmoveControl(GlobalVariables& gv) 
+{
+} 
+
+void initLineControl(GlobalVariables& gv) 
+{
+}
+
+void initProj1Control(GlobalVariables& gv) 
+{
+}
+
+void initProj2Control(GlobalVariables& gv) 
+{
+}
+
+void initProj3Control(GlobalVariables& gv) 
+{
+}
+
+
+// *******************************************************************
+// Control laws
+// *******************************************************************
+
+void noControl(GlobalVariables& gv)
+{
+}
+
+void floatControl(GlobalVariables& gv)
+{
+   gv.tau = gv.G;
+}
+
+void openControl(GlobalVariables& gv)
+{
+   floatControl(gv);  // Remove this line when you implement openControl
+}
+
+void njholdControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement njholdControl
+}
+
+void jholdControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement jholdControl
+}
+
+void njmoveControl(GlobalVariables& gv)
+{
+   floatControl(gv);  // Remove this line when you implement njmoveControl
+}
+
+void jmoveControl(GlobalVariables& gv)
+{
+   floatControl(gv);  // Remove this line when you implement jmoveControl
+}
+
+void njgotoControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement njgotoControl
+}
+
+void jgotoControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement jgotoControl
+}
+
+void njtrackControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement njtrackControl
+}
+
+void jtrackControl(GlobalVariables& gv)
+{
+   floatControl(gv);  // Remove this line when you implement jtrackControl
+}
+
+void nxtrackControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement nxtrackControl
+}
+
+void xtrackControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement xtrackControl
+}
+
+void nholdControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement nholdControl
+}
+
+void holdControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement holdControl
+}
+
+void ngotoControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement ngotoControl
+}
+
+void gotoControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement gotoControl
+}
+
+void ntrackControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement ntrackControl
+}
+
+void trackControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement trackControl
+}
+
+void pfmoveControl(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement pfmoveControl
+}
+
+void lineControl(GlobalVariables& gv)
+{
+   floatControl(gv);  // Remove this line when you implement lineControl
+}
+
+void proj1Control(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement proj1Control
+}
+
+void proj2Control(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement proj2Control
+}
+
+void proj3Control(GlobalVariables& gv) 
+{
+   floatControl(gv);  // Remove this line when you implement proj3Control
+}
+
+// *******************************************************************
+// Debug function
+// *******************************************************************
+
+void PrintDebug(GlobalVariables& gv)
+{
+   // Replace this code with any debug information you'd like to get
+   // when you type "pdebug" at the prompt.
+   printf( "This sample code prints the torque and mass\n" );
+   gv.tau.display( "tau" );
+   gv.A.display( "A" );
+}
+
+/********************************************************
+
+END OF DEFAULT STUDENT FILE 
+
+ADD HERE ALL STUDENT DEFINED AND AUX FUNCTIONS 
+
+*******************************************************/
+
+bool inv_kin( const PrVector3& pos, const PrMatrix3& rot, int elbow,
+              PrVector& qOut, GlobalVariables& gv )
+{
+   return true;
+}
+
+void OpDynamics( const PrVector& fPrime, GlobalVariables& gv )
+{
+}
+
+
+#ifdef WIN32
+// *******************************************************************
+// XPrintf(): Replacement for printf() which calls ui->VDisplay()
+// whenever the ui object is available.  See utility/XPrintf.h.
+// *******************************************************************
+
+int XPrintf( const char* fmt, ... )
+{
+  int returnValue;
+  va_list argptr;
+  va_start( argptr, fmt );
+
+  returnValue = vprintf( fmt, argptr );
+
+  va_end( argptr );
+  return returnValue;
+}
+#endif //#ifdef WIN32

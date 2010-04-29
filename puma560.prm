@@ -1,0 +1,42 @@
+2
+0.0 0.0 -9.81
+0 1  0.0                     0.0000  0.0000 0.0 34.40 0.000  0.000  0.000 0.00000 0.00000 0.35000 1.140  10.0 2.5 5.0 -2.7925244444 2.7925244444
+1 1 -1.57079632679489661923  0.0000  0.2435 0.0 17.40 0.068  0.006 -0.016 0.13000 0.52400 0.53900 4.710  10.0 2.5 5.0 -3.8920809444 0.7504909444
+2 1  0.0                     0.4318 -0.0934 0.0  6.04 0.000 -0.143  0.014 0.19200 0.01540 0.21200 0.830  5.0 1.2 2.5 -0.6981311111 4.1887866666
+3 1  1.57079632679489661923 -0.0203  0.4331 0.0  0.82 0.000  0.000 -0.019 0.00180 0.00180 0.00130 0.200   1.0 0.2 0.5 -2.2689261111 3.1415900000
+4 1 -1.57079632679489661923  0.0000  0.0000 0.0  0.34 0.000  0.000  0.000 0.00030 0.00030 0.00040 0.179   0.5 0.1 0.2 -1.7453277777 1.7453277777
+5 1  1.57079632679489661923  0.0000  0.0000 0.0  0.09 0.000  0.000  0.032 0.00015 0.00015 0.00004 0.193   0.5 0.1 0.2 -4.6425718888 4.6425718888
+888 1 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+999 1 0.0 0.0 0.06 0.0 0.20 0.0 0.0 0.050 0.01 0.01 0.02 0.0 0.0 0.1
+
+
+# First line:
+#
+## 2
+#
+## Second line:
+#
+# gravity
+#
+# All other lines (links, force sensor, and end-effector):
+#
+## id type dh-param(4) mass com(3) I(3)
+#
+# More properties if this is a link:
+#
+## Imotor viscousFriction dynCFriction staticCFriction qMin qMax
+#
+# Else (e.g. force sensor, then end effector)
+#
+## offset(3)
+
+# id of the force sensor is 888, id of the end effector is 999.
+# typically e.e. follows after the force sensor in B30 setup
+
+#888 1 0.0 0.0 0.055 0.0 0.20 0.0 0.0 0.015 0.01 0.01 0.02 0.0 0.0 0.035
+
+# The dh_params of the force sensor and end effector are both relative
+# to the last link.  (The dh_params of the end effector includes the
+# length of the force sensor.)  You find the center of mass by
+# applying the dh_params and adding the com (just like all links), and
+# you find the tip by applying the dh_params and adding the offset.
