@@ -123,6 +123,7 @@ void initJtrackControl(GlobalVariables& gv)
 
 void initNxtrackControl(GlobalVariables& gv) 
 {
+	gv.dqd.zero();
 	PrVector6 qOut;
 	if(!inv_kin(gv.Td.translation(), gv.Td.rotation().matrix(), gv.elbow, qOut, gv)) {
 		gv.qd = qOut;
@@ -133,6 +134,7 @@ void initNxtrackControl(GlobalVariables& gv)
 
 void initXtrackControl(GlobalVariables& gv) 
 {
+	gv.dqd.zero();
 	PrVector6 qOut;
 	if(!inv_kin(gv.Td.translation(), gv.Td.rotation().matrix(), gv.elbow, qOut, gv)) {
 		gv.qd = qOut;
