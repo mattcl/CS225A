@@ -130,6 +130,7 @@ void initNxtrackControl(GlobalVariables& gv)
 	} else {
 		gv.dq = gv.q;
 	}
+	generateSplineTrajectory(gv);
 }
 
 void initXtrackControl(GlobalVariables& gv) 
@@ -141,6 +142,7 @@ void initXtrackControl(GlobalVariables& gv)
 	} else {
 		gv.dq = gv.q;
 	}
+	generateSplineTrajectory(gv);
 } 
 
 void initNholdControl(GlobalVariables& gv) 
@@ -271,14 +273,12 @@ void jtrackControl(GlobalVariables& gv)
 
 void nxtrackControl(GlobalVariables& gv) 
 {
-	gv.tau = -gv.kp*(gv.q - gv.qd) - gv.kv*(gv.dq - gv.dqd) + gv.G;
+	njtrackControl(gv);
 }
 
 void xtrackControl(GlobalVariables& gv) 
 {
-   PrVector6 tau_prime;
-   tau_prime = -gv.kp*(gv.q - gv.qd) - gv.kv*(gv.dq - gv.dqd);
-   gv.tau = gv.A * tau_prime + gv.B + gv.G;
+   jtrackControl(gv);
 }
 
 void nholdControl(GlobalVariables& gv) 
@@ -482,6 +482,9 @@ PrVector6 velocitySaturate(GlobalVariables& gv) {
 		if(gv.kv[i] == 0) {
 			tau_desired[i] = -gv.kp[i] * (gv.q[i] - gv.qd[i]);
 		} else {
+			if(gv.kv[i] < 0.005) {
+				gv.kv[i] = 0.05;
+			}
 			gv.dqd[i] = (gv.kp[i] / gv.kv[i]) * (gv.qd[i] - gv.q[i]);
 			float nu = gv.dqmax[i] / abs(gv.dqd[i]);
 			nu = abs(nu) > 1 ? (nu < 0 ? -1 : 1) : nu;
